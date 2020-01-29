@@ -5,12 +5,20 @@
         <title>RpHGDEF1 基本数据分析工具</title>
         <link rel="stylesheet" href="../css/bootstrap.min.css">
         <link rel="stylesheet" href="../css/app.css">
+        <style media="screen">
+        .mycard p {
+            font-family: 'Source Code Pro', 'Menlo', monospace;
+        }
+        </style>
         <script type="text/javascript">
         window.charts = {};
         charts.barsHorizontal = function () {};
         </script>
         <script type="text/javascript">
         window.app = {};
+        app.env = {
+            lsk: 'd9a86f37c0554168a722caf7fbb4adcc_'
+        };
         app.utils = {};
         app.utils.average = function (arr) {
             if (arr.length === 0) {
@@ -70,17 +78,17 @@
             {
                 'codeName': 'basicParsing',
                 'name': '基本数据解析',
-                'work': function (db, rawDataStr) {
+                'render': function (db, rawDataStr) {
                     return [
                         `读入数据：${rawDataStr.trim().replace(/\n+/g, '\n').split('\n').length} 行`,
-                        `其中 ${db.length} 行有效数据`
+                        `其中有效数据 ${db.length} 行`
                     ].map(function (x) {return `<p>${x}</p>`}).join('');
                 }
             },
             {
                 'codeName': 'weeklyActivity',
                 'name': '星期分布',
-                'work': function (db) {
+                'render': function (db) {
                     var eachDate = {};
                     var daysInWeek = [
                         [],
@@ -113,27 +121,27 @@
                         return `周${'日一二三四五六'[i]}：${(function (str) {
                             // Removed NaN
                             if (str.indexOf('NaN') !== -1) {
-                                return '无数据';
+                                return '[N/A]';
                             } else {
                                 return str;
                             };
-                        })(app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(daysInWeek[i]).toString().slice(0,6)),6,'0'))}`
+                        })(app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(daysInWeek[i]).toString().slice(0,5)),5,'0'))}（基于 ${daysInWeek[i].length} 天平均）`
                     }).map(function (x) {return `<p>${x}</p>`}).join('');
-                    // return charts.barsHorizontal();
                 }
             },
             {
                 'codeName': 'hourlyDistribution',
                 'name': '小时分布',
-                'work': function (db) {
+                'render': function (db) {
                     return '<p>本功能尚未实现</p>';
                 }
             }
         ];
         app.start = function () {
+            localStorage[app.env.lsk+'rawDataInput'] = document.querySelector('#js-initialInputArea').value;
             app.db = app.dataParser(document.querySelector('#js-initialInputArea').value);
             app.analyzers.map(function (ana) {
-                document.querySelector(`[data-for-analyzer="${ana.codeName}"]`).innerHTML = ana.work(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
+                document.querySelector(`[data-for-analyzer="${ana.codeName}"]`).innerHTML = ana.render(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
             });
         };
         </script>
@@ -145,14 +153,6 @@
                     <div class="block-constraint">
                         <div class="padless">
                             <h1>RpHGDEF1 基本数据分析工具</h1>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grand-body" style="display: none;">
-                    <div class="block-constraint">
-                        <div class="padless">
-                            咕咕咕咕咕咕咕咕咕咕咕咕
                         </div>
                     </div>
                 </div>
@@ -173,9 +173,14 @@
                                     resize: none;
                                     padding: 6px 8px;
                                 " placeholder="在此粘贴原始数据" autofocus></textarea>
+                                <script type="text/javascript">
+                                if (localStorage[app.env.lsk+'rawDataInput'] !== undefined) {
+                                    document.querySelector('#js-initialInputArea').value = localStorage[app.env.lsk+'rawDataInput'];
+                                };
+                                </script>
                             </div>
                             <div class="form-group mb-5">
-                                <button type="button" name="button" class="btn btn-primary btn-lg btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">开始分析数据</button>
+                                <button type="button" name="button" class="btn btn-primary btn-lg btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">分析数据</button>
                                 <script type="text/javascript">
                                 document.querySelector('button').addEventListener('click', function () {
                                     document.querySelectorAll(`[data-for-analyzer]`).forEach(function (x) {
@@ -189,8 +194,8 @@
 
                         <style media="screen">
                         .mycard {
-                            box-shadow: rgba(0, 0, 0, 0.08) 0 3px 17px 1px;
-                            border: 1px solid rgba(0, 0, 0, 0.07);
+                            box-shadow: rgba(0, 0, 0, 0.06) 0 3px 24px 1px;
+                            border: 1px solid rgba(0, 0, 0, 0.04);
                             border-radius: 7px;
                             padding: 30px 20px;
                             margin: 0 0 30px;
@@ -231,7 +236,11 @@
                 <div class="grand-footer">
                     <div class="block-constraint">
                         <div class="padless">
-                            <p>© 2019 Neruthes</p>
+                            <p>© 2020<script>
+                            document.write(
+                                ((new Date()).getFullYear() === 2020) ? '' : ('-' + (new Date()).getFullYear())
+                            );
+                            </script> Neruthes</p>
                             <p>本工具用于分析符合 <a href="https://github.com/neruthes/RpHMGDEF1">RpHMGDEF1</a> 格式的综合数据</p>
                         </div>
                     </div>
