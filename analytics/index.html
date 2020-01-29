@@ -134,7 +134,7 @@
                 'name': '基本数据解析',
                 'render': function (db, rawDataStr) {
                     return [
-                        `读入数据：${rawDataStr.trim().replace(/\n+/g, '\n').split('\n').length} 行`,
+                        `读入数据 ${rawDataStr.trim().replace(/\n+/g, '\n').split('\n').length} 行`,
                         `其中有效数据 ${db.length} 行`
                     ].map(function (x) {return `<p>${x}</p>`}).join('');
                 }
