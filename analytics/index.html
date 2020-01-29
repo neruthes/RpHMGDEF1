@@ -244,6 +244,34 @@
                         })
                     });
                 }
+            },
+            {
+                'codeName': 'dailyAverageOverMonths',
+                'name': '日均变化趋势',
+                'render': function (db) {
+                    // var hourGroups = (new Array(12)).fill(0);
+                    // var totalCounts = app.db.length;
+                    // app.db.map(function (x) {
+                    //     // console.log(app.parseEntryInfo(x).localHour);
+                    //     var currentHourGroup = Math.floor(parseInt(app.parseEntryInfo(x).localHour)/2);
+                    //     hourGroups[currentHourGroup] = hourGroups[currentHourGroup] + 1;
+                    // });
+                    // console.log(hourGroups);
+                    // var maxHour = Math.max.apply(null, hourGroups.map(function (x) {
+                    //     return x;
+                    // }));
+                    return '<p>本功能尚未实现</p>';
+                    // return charts.barsHorizontal({
+                    //     'rows': hourGroups.map(function (x, i) {
+                    //         var barLength = x/maxHour;
+                    //         return [
+                    //             `${app.utils.leftpad((i*2).toString(),2,'0')}:00:00-${app.utils.leftpad((i*2+1).toString(),2,'0')}:59:59`,
+                    //             (x/app.db.length*100).toString().slice(0,5) + '%',
+                    //             (isNaN(barLength) ? 0 : barLength)
+                    //         ];
+                    //     })
+                    // });
+                }
             }
         ];
         app.start = function () {
