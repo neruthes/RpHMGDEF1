@@ -152,6 +152,11 @@ K   | 意外射精（例：直肠指检）
 2020-01-28T17:32:10.880Z;A;{"_Foo":"Hello","Bar":"World"}
 ```
 
-## 6. 致谢
+## 6. 实用工具
+
+- [joyneop.xyz/RpHMGDEF1](https://joyneop.xyz/RpHMGDEF1/) 单条记录生成工具（by Neruthes）
+- [joyneop.xyz/RpHMGDEF1/analytics](https://joyneop.xyz/RpHMGDEF1/analytics/) 基本数据分析工具（by Neruthes）
+
+## 7. 致谢
 
 - **Dong, Shida** (Mr.), 董先生的生殖健康管理记录启发了作者来创造本格式。
