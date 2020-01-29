@@ -5,6 +5,138 @@
         <title>RpHGDEF1 基本数据分析工具</title>
         <link rel="stylesheet" href="../css/bootstrap.min.css">
         <link rel="stylesheet" href="../css/app.css">
+        <script type="text/javascript">
+        window.charts = {};
+        charts.barsHorizontal = function () {};
+        </script>
+        <script type="text/javascript">
+        window.app = {};
+        app.utils = {};
+        app.utils.average = function (arr) {
+            if (arr.length === 0) {
+                return NaN;
+            };
+            return arr.reduce((x,y)=>x+y)/arr.length;
+        };
+        app.utils.rightpad = function (str, len, pad) {
+            return str + (new Array(len-str.length)).fill(pad).join('');
+        };
+        app.utils.addMissingDecimalDot = function (str) {
+            if (str.indexOf('.') === -1) {
+                return str + '.'
+            } else {
+                return str;
+            };
+        };
+        app.dicts = {};
+        app.dicts.dayNameToIndex = {
+            'Sun': 0,
+            'Mon': 1,
+            'Tue': 2,
+            'Wed': 3,
+            'Thu': 4,
+            'Fri': 5,
+            'Sat': 6
+        };
+        app.dicts.timezones = {
+            '00000': 'UTC',
+            '+0800': 'Asia/Shanghai'
+        };
+        app.db = [];
+        app.dataParser = function (rawDataStr) {
+            var tmp = rawDataStr.trim().replace(/\n+/g, '\n').split('\n').map(function (x) {
+                return x.split(';');
+            });
+            var data = [];
+            tmp.map(function (record) {
+                if ((new Date(record[0])).toUTCString() === 'Invalid Date') {
+                    return false;
+                };
+                if (!record[1].match(/^[A-HJ-NP-Z]{1,2}\d{0,2}$/)) {
+                    return false;
+                };
+                if (!record[2].match(/^[-+0](0[0-9]|1[0-2])(00|30)$/)) {
+                    return false;
+                };
+                data.push({
+                    Time: record[0],
+                    Class: record[1],
+                    Timezone: record[2],
+                })
+            });
+            return data;
+        };
+        app.analyzers = [
+            {
+                'codeName': 'basicParsing',
+                'name': '基本数据解析',
+                'work': function (db, rawDataStr) {
+                    return [
+                        `读入数据：${rawDataStr.trim().replace(/\n+/g, '\n').split('\n').length} 行`,
+                        `其中 ${db.length} 行有效数据`
+                    ].map(function (x) {return `<p>${x}</p>`}).join('');
+                }
+            },
+            {
+                'codeName': 'weeklyActivity',
+                'name': '星期分布',
+                'work': function (db) {
+                    var eachDate = {};
+                    var daysInWeek = [
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        []
+                    ];
+                    db.map(function (entry) {
+                        var localDayInWeek = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], weekday: 'short' });
+                        var localHour = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], hourCycle: 'h24', hour: '2-digit'});
+                        var localMMDDYYYY = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], hourCycle: 'h24', month: '2-digit', day: '2-digit', year: 'numeric'});
+                        var dateIdentifier = localDayInWeek + '|' + localMMDDYYYY;
+                        if (eachDate[dateIdentifier] === undefined) {
+                            eachDate[dateIdentifier] = 1;
+                        } else {
+                            eachDate[dateIdentifier] = eachDate[dateIdentifier]+1;
+                        };
+                    });
+                    Object.keys(eachDate).map(function (dateStr) {
+                        var localDayInWeek = dateStr.split('|')[0];
+                        var localMMDDYYYY = dateStr.split('|')[1];
+                        var thisDayInWeek = app.dicts.dayNameToIndex[localDayInWeek];
+                        daysInWeek[thisDayInWeek].push(eachDate[dateStr]);
+                    });
+                    console.log(daysInWeek);
+                    return daysInWeek.map(function (x, i) {
+                        return `周${'日一二三四五六'[i]}：${(function (str) {
+                            // Removed NaN
+                            if (str.indexOf('NaN') !== -1) {
+                                return '无数据';
+                            } else {
+                                return str;
+                            };
+                        })(app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(daysInWeek[i]).toString().slice(0,6)),6,'0'))}`
+                    }).map(function (x) {return `<p>${x}</p>`}).join('');
+                    // return charts.barsHorizontal();
+                }
+            },
+            {
+                'codeName': 'hourlyDistribution',
+                'name': '小时分布',
+                'work': function (db) {
+                    return '<p>本功能尚未实现</p>';
+                }
+            }
+        ];
+        app.start = function () {
+            app.db = app.dataParser(document.querySelector('#js-initialInputArea').value);
+            app.analyzers.map(function (ana) {
+                document.querySelector(`[data-for-analyzer="${ana.codeName}"]`).innerHTML = ana.work(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
+            });
+        };
+        </script>
     </head>
     <body>
         <div class="world">
@@ -17,7 +149,7 @@
                     </div>
                 </div>
 
-                <div class="grand-body">
+                <div class="grand-body" style="display: none;">
                     <div class="block-constraint">
                         <div class="padless">
                             咕咕咕咕咕咕咕咕咕咕咕咕
@@ -25,11 +157,82 @@
                     </div>
                 </div>
 
+                <div class="grand-body">
+                    <div class="block-constraint">
+                        <div class="padless">
+                            <h3 class="mb-4">输入原始数据</h3>
+                            <div class="mb-3" id="">
+                                <textarea id="js-initialInputArea" style="
+                                    font-family: 'Source Code Pro', 'Menlo', monospace;
+                                    font-size: 16px;
+                                    background: #FFF;
+                                    border: 1px solid #ced4da;
+                                    border-radius: 3.5px;
+                                    width: 100%;
+                                    height: 4em;
+                                    resize: none;
+                                    padding: 6px 8px;
+                                " placeholder="在此粘贴原始数据" autofocus></textarea>
+                            </div>
+                            <div class="form-group mb-5">
+                                <button type="button" name="button" class="btn btn-primary btn-lg btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">开始分析数据</button>
+                                <script type="text/javascript">
+                                document.querySelector('button').addEventListener('click', function () {
+                                    document.querySelectorAll(`[data-for-analyzer]`).forEach(function (x) {
+                                        x.innerHTML = '';
+                                    });
+                                    setTimeout(app.start, 300);
+                                });
+                                </script>
+                            </div>
+                        </div>
+
+                        <style media="screen">
+                        .mycard {
+                            box-shadow: rgba(0, 0, 0, 0.08) 0 3px 17px 1px;
+                            border: 1px solid rgba(0, 0, 0, 0.07);
+                            border-radius: 7px;
+                            padding: 30px 20px;
+                            margin: 0 0 30px;
+                        }
+                        .mycard h3 {
+                            /* padding: 0px 0 0; */
+                        }
+                        </style>
+                        <div id="js-listOfReportCards">
+                        </div>
+                        <script type="text/javascript">
+                        document.querySelector('#js-listOfReportCards').innerHTML = app.analyzers.map(function (x) {
+                            return `<div class="mycard">
+                                <h3 class="mb-4">${x.name}</h3>
+                                <div class="" data-for-analyzer="${x.codeName}">
+                                </div>
+                            </div>`;
+                        }).join('');
+                        </script>
+                        <!-- <div class="mycard">
+                            <h3 class="mb-4">基本数据解析</h3>
+                            <div class="" data-for-analyzer="basicParsing">
+                            </div>
+                        </div>
+                        <div class="mycard">
+                            <h3 class="mb-4">星期分布</h3>
+                            <div class="" data-for-analyzer="weeklyActivity">
+                            </div>
+                        </div>
+                        <div class="mycard">
+                            <h3 class="mb-4">小时分布</h3>
+                            <div class="" data-for-analyzer="hourlyDistribution">
+                            </div>
+                        </div> -->
+                    </div>
+                </div>
+
                 <div class="grand-footer">
                     <div class="block-constraint">
                         <div class="padless">
                             <p>© 2019 Neruthes</p>
-                            <p>本生成器用于分析符合 <a href="https://github.com/neruthes/RpHMGDEF1">RpHMGDEF1</a> 格式的综合数据</p>
+                            <p>本工具用于分析符合 <a href="https://github.com/neruthes/RpHMGDEF1">RpHMGDEF1</a> 格式的综合数据</p>
                         </div>
                     </div>
                 </div>
