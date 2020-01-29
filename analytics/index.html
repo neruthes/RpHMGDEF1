@@ -3,16 +3,50 @@
     <head>
         <meta charset="utf-8">
         <title>RpHGDEF1 基本数据分析工具</title>
-        <link rel="stylesheet" href="../css/bootstrap.min.css">
+        <link rel="stylesheet" href="../css/bootstrap.css">
         <link rel="stylesheet" href="../css/app.css">
         <style media="screen">
-        .mycard p {
-            font-family: 'Source Code Pro', 'Menlo', monospace;
+        .mycard table * {
+            border: none;
+        }
+        .mycard table * {
+            font-family: 'Source Code Pro', 'Menlo', monospace, 'PingFang SC', 'Noto Sans CJK SC', 'Source Han Sans CN';
+        }
+        .mycard table td {
+            background-clip: content-box !important;
+            padding: 0px 0px 8px;
+        }
+        .mycard table td:first-child {
+            width: 40%;
+        }
+        .mycard table .table-cell-real-content {
+            border-radius: 3.5px;
+            display: block !important;
+            width: 100%;
+            padding: 5px 8px;
         }
         </style>
         <script type="text/javascript">
         window.charts = {};
-        charts.barsHorizontal = function () {};
+        charts.barsHorizontal = function (dataObj) {
+            var dataObj_sample = [
+                // ['key 1', 'value 1', width_percentage],
+                ['key 1', 'value 1', 0.25],
+                ['key 2', 'value 2', 0.5]
+            ];
+            // var dataObj = JSON.parse(JSON.stringify(dataObj_sample));
+            var arr = dataObj.rows.map(function (row) {
+                return `<tr>
+                    <td>${row[0]}</td>
+                    <td><span class="table-cell-real-content" style="background-image: linear-gradient(90deg, #F3F3F3 ${row[2]*100}%, #FFF ${row[2]*100}%);">${row[1]}</span></td>
+                </tr>`;
+            }).join('');
+            return `<table class="table table-bordered1" style="">
+                <tbody style="width: 100%;">
+                ${arr}
+                </tbody>
+            </table>`;
+        };
         </script>
         <script type="text/javascript">
         window.app = {};
@@ -28,6 +62,9 @@
         };
         app.utils.rightpad = function (str, len, pad) {
             return str + (new Array(len-str.length)).fill(pad).join('');
+        };
+        app.utils.leftpad = function (str, len, pad) {
+            return (new Array(len-str.length)).fill(pad).join('') + str;
         };
         app.utils.addMissingDecimalDot = function (str) {
             if (str.indexOf('.') === -1) {
@@ -51,6 +88,23 @@
             '+0800': 'Asia/Shanghai'
         };
         app.db = [];
+        app.parseEntryInfo = function (entry) {
+            var localDayInWeek = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], weekday: 'short' });
+            var localHour = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], hourCycle: 'h24', hour: '2-digit'});
+            var localMMDDYYYY = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], hourCycle: 'h24', month: '2-digit', day: '2-digit', year: 'numeric'}).replace(/\s\-\//g, '/');
+            var localYYYYMMDD = localMMDDYYYY.replace(/(\d{2})\/(\d{2})\/(\d{4})/g, '$3-$1-$2');
+            var dateIdentifier = localYYYYMMDD + '|' + localDayInWeek;
+            return {
+                'localDayInWeek': localDayInWeek,
+                'localHour': localHour,
+                'localYYYYMMDD': localYYYYMMDD,
+                'dateIdentifier': dateIdentifier,
+                'class': entry['Class']
+            };
+        };
+        app.getDateIdentifierFromDateObj = function (dateObj) {
+            return dateObj.toISOString().slice(0,10) + '|' + ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dateObj.getUTCDay()];
+        };
         app.dataParser = function (rawDataStr) {
             var tmp = rawDataStr.trim().replace(/\n+/g, '\n').split('\n').map(function (x) {
                 return x.split(';');
@@ -67,9 +121,9 @@
                     return false;
                 };
                 data.push({
-                    Time: record[0],
-                    Class: record[1],
-                    Timezone: record[2],
+                    'Time': record[0],
+                    'Class': record[1],
+                    'Timezone': record[2],
                 })
             });
             return data;
@@ -89,7 +143,48 @@
                 'codeName': 'weeklyActivity',
                 'name': '星期分布',
                 'render': function (db) {
-                    var eachDate = {};
+                    // Overall idea:
+                    // Find first date and last date; fill the gaps; generate a fill list of dates, as sorted.
+                    // Get counts for each date.
+                    // Get total dates of each weekday
+                    // End
+                    // ------------------------------------------
+                    // Step 1: Find first date and last date
+                    var explicitlyGivenDates = [];
+                    db.map(function (entry) {
+                        var dateIdentifier = app.parseEntryInfo(entry).dateIdentifier;
+                        explicitlyGivenDates.push(dateIdentifier);
+                    });
+                    var firstGivenDateStr = explicitlyGivenDates.sort()[0];
+                    var lastGivenDateStr = explicitlyGivenDates.sort().reverse()[0];
+                    // console.log(explicitlyGivenDates);
+                    console.log('firstGivenDateStr', firstGivenDateStr);
+                    console.log('lastGivenDateStr', lastGivenDateStr);
+                    // Step 2: Fill the gaps to have a full list of dates
+                    var listOfDates = {};
+                    listOfDates[firstGivenDateStr] = 0;
+                    listOfDates[lastGivenDateStr] = 0;
+                    (function () {
+                        var initialDateStr = firstGivenDateStr.split('|')[0];
+                        var initialDateObj = new Date(initialDateStr + 'T00:00:05.000Z');
+                        var currentDateObj = new Date(initialDateStr + 'T00:00:05.000Z');
+                        var lastDateStr = lastGivenDateStr.split('|')[0];
+                        var lastDateObj = new Date(lastDateStr + 'T00:00:05.000Z');
+                        console.log('initialDateObj', initialDateObj);
+                        var getNextDay = function (dateObj) {
+                            return new Date(dateObj.getTime()+24*3600*1000);
+                        };
+                        while (getNextDay(currentDateObj).getTime() <= lastDateObj.getTime()) {
+                            listOfDates[app.getDateIdentifierFromDateObj(currentDateObj)] = 0;
+                            currentDateObj = getNextDay(currentDateObj);
+                        };
+                        // console.log(listOfDates);
+                    })();
+                    // Step 3: Calculate counts of each date
+                    app.db.map(function (entry) {
+                        listOfDates[app.parseEntryInfo(entry).dateIdentifier] += 1;
+                    });
+                    // Step 4: Fill into each weekday
                     var daysInWeek = [
                         [],
                         [],
@@ -99,50 +194,68 @@
                         [],
                         []
                     ];
-                    db.map(function (entry) {
-                        var localDayInWeek = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], weekday: 'short' });
-                        var localHour = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], hourCycle: 'h24', hour: '2-digit'});
-                        var localMMDDYYYY = (new Date(entry.Time)).toLocaleString('en', { timeZone: app.dicts.timezones[entry.Timezone], hourCycle: 'h24', month: '2-digit', day: '2-digit', year: 'numeric'});
-                        var dateIdentifier = localDayInWeek + '|' + localMMDDYYYY;
-                        if (eachDate[dateIdentifier] === undefined) {
-                            eachDate[dateIdentifier] = 1;
-                        } else {
-                            eachDate[dateIdentifier] = eachDate[dateIdentifier]+1;
-                        };
-                    });
-                    Object.keys(eachDate).map(function (dateStr) {
-                        var localDayInWeek = dateStr.split('|')[0];
-                        var localMMDDYYYY = dateStr.split('|')[1];
-                        var thisDayInWeek = app.dicts.dayNameToIndex[localDayInWeek];
-                        daysInWeek[thisDayInWeek].push(eachDate[dateStr]);
+                    console.log(listOfDates);
+                    Object.keys(listOfDates).sort().map(function (dateIdentifier) {
+                        var dayId = app.dicts.dayNameToIndex[dateIdentifier.split('|')[1]];
+                        daysInWeek[dayId] = daysInWeek[dayId].concat(listOfDates[dateIdentifier]);
                     });
                     console.log(daysInWeek);
-                    return daysInWeek.map(function (x, i) {
-                        return `周${'日一二三四五六'[i]}：${(function (str) {
-                            // Removed NaN
-                            if (str.indexOf('NaN') !== -1) {
-                                return '[N/A]';
-                            } else {
-                                return str;
-                            };
-                        })(app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(daysInWeek[i]).toString().slice(0,5)),5,'0'))}（基于 ${daysInWeek[i].length} 天平均）`
-                    }).map(function (x) {return `<p>${x}</p>`}).join('');
+                    // Step 5: Generate result output
+                    var maxDay = Math.max.apply(null, daysInWeek.map(function (x) {
+                        return app.utils.average(x);
+                    }));
+                    console.log('maxDay', maxDay);
+                    return charts.barsHorizontal({
+                        'rows': daysInWeek.map(function (x, i) {
+                            var normalizedNumber = app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(x).toString().slice(0,7)),7,'0');
+                            var barLength = app.utils.average(x)/maxDay;
+                            return [
+                                '周' + '日一二三四五六'[i] + `（样本量：${x.length}）`,
+                                (function (x) { return ( x.indexOf('NaN') === -1 ? x : '-' )})(normalizedNumber),
+                                (isNaN(barLength) ? 0 : barLength)
+                            ];
+                        })
+                    });
                 }
             },
             {
                 'codeName': 'hourlyDistribution',
                 'name': '小时分布',
                 'render': function (db) {
-                    return '<p>本功能尚未实现</p>';
+                    var hourGroups = (new Array(12)).fill(0);
+                    var totalCounts = app.db.length;
+                    app.db.map(function (x) {
+                        // console.log(app.parseEntryInfo(x).localHour);
+                        var currentHourGroup = Math.floor(parseInt(app.parseEntryInfo(x).localHour)/2);
+                        hourGroups[currentHourGroup] = hourGroups[currentHourGroup] + 1;
+                    });
+                    console.log(hourGroups);
+                    var maxHour = Math.max.apply(null, hourGroups.map(function (x) {
+                        return x;
+                    }));
+                    return charts.barsHorizontal({
+                        'rows': hourGroups.map(function (x, i) {
+                            var barLength = x/maxHour;
+                            return [
+                                `${app.utils.leftpad((i*2).toString(),2,'0')}:00:00-${app.utils.leftpad((i*2+1).toString(),2,'0')}:59:59`,
+                                (x/app.db.length*100).toString().slice(0,5) + '%',
+                                (isNaN(barLength) ? 0 : barLength)
+                            ];
+                        })
+                    });
                 }
             }
         ];
         app.start = function () {
             localStorage[app.env.lsk+'rawDataInput'] = document.querySelector('#js-initialInputArea').value;
             app.db = app.dataParser(document.querySelector('#js-initialInputArea').value);
-            app.analyzers.map(function (ana) {
-                document.querySelector(`[data-for-analyzer="${ana.codeName}"]`).innerHTML = ana.render(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
-            });
+            if (app.db.length > 0) {
+                app.analyzers.map(function (worker) {
+                    document.querySelector(`[data-for-analyzer="${worker.codeName}"]`).innerHTML = worker.render(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
+                });
+            } else {
+                document.querySelector(`[data-for-analyzer="basicParsing"]`).innerHTML = app.analyzers[0].render(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
+            };
         };
         </script>
     </head>
@@ -161,7 +274,7 @@
                     <div class="block-constraint">
                         <div class="padless">
                             <h3 class="mb-4">输入原始数据</h3>
-                            <div class="mb-3" id="">
+                            <div class="mb-4" id="">
                                 <textarea id="js-initialInputArea" style="
                                     font-family: 'Source Code Pro', 'Menlo', monospace;
                                     font-size: 16px;
@@ -179,13 +292,41 @@
                                 };
                                 </script>
                             </div>
-                            <div class="form-group mb-5">
-                                <button type="button" name="button" class="btn btn-primary btn-lg btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">分析数据</button>
+                            <div class="form-group mb-3">
+                                <button type="button" name="button" id="js-btnAnalyzeStart" class="btn btn-primary btn-lg btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">分析数据</button>
                                 <script type="text/javascript">
-                                document.querySelector('button').addEventListener('click', function () {
+                                document.querySelector('#js-btnAnalyzeStart').addEventListener('click', function () {
                                     document.querySelectorAll(`[data-for-analyzer]`).forEach(function (x) {
                                         x.innerHTML = '';
                                     });
+                                    setTimeout(app.start, 300);
+                                });
+                                window.addEventListener('load', function () { setTimeout(app.start, 350); });
+                                </script>
+                            </div>
+                            <div class="form-group mb-5">
+                                <button type="button" name="button" id="js-btnFillMockData" class="btn btn-link btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">使用样例数据</button>
+                                <script type="text/javascript">
+                                var sampleMockData = ['2020-01-29T15:11:10.880Z;A;+0800',
+                                    '2020-01-29T17:32:10.880Z;A;+0800',
+                                    '2020-01-29T23:32:10.880Z;A;+0800',
+                                    '2020-01-31T17:32:10.880Z;A;+0800',
+                                    '2020-02-02T13:32:10.880Z;A;+0800',
+                                    '2020-02-03T13:32:10.880Z;A;+0800',
+                                    '2020-02-04T13:32:10.880Z;A;+0800',
+                                    '2020-02-05T13:32:10.880Z;A;+0800',
+                                    '2020-02-06T13:32:10.880Z;A;+0800',
+                                    '2020-02-07T13:32:10.880Z;A;+0800',
+                                    '2020-02-08T13:32:10.880Z;A;+0800',
+                                    '2020-02-09T13:32:10.880Z;A;+0800',
+                                    '2020-02-10T01:32:10.880Z;A;+0800',
+                                    '2020-02-10T04:32:10.880Z;A;+0800',
+                                    '2020-02-10T11:32:10.880Z;A;+0800',
+                                    '2020-02-10T12:32:10.880Z;A;+0800',
+                                    '2020-02-10T13:32:10.880Z;A;+0800'
+                                ].join('\n');
+                                document.querySelector('#js-btnFillMockData').addEventListener('click', function () {
+                                    document.querySelector('#js-initialInputArea').value = sampleMockData;
                                     setTimeout(app.start, 300);
                                 });
                                 </script>
@@ -215,21 +356,6 @@
                             </div>`;
                         }).join('');
                         </script>
-                        <!-- <div class="mycard">
-                            <h3 class="mb-4">基本数据解析</h3>
-                            <div class="" data-for-analyzer="basicParsing">
-                            </div>
-                        </div>
-                        <div class="mycard">
-                            <h3 class="mb-4">星期分布</h3>
-                            <div class="" data-for-analyzer="weeklyActivity">
-                            </div>
-                        </div>
-                        <div class="mycard">
-                            <h3 class="mb-4">小时分布</h3>
-                            <div class="" data-for-analyzer="hourlyDistribution">
-                            </div>
-                        </div> -->
                     </div>
                 </div>
 
