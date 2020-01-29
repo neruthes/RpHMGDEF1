@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>RpHGDEF1 数据生成器</title>
+        <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="./css/app.css">
+        <style media="screen">
+        </style>
+    </head>
+    <body>
+        <div class="world">
+            <div class="cont">
+                <div class="grand-header" style="padding: 60px 0 30px;">
+                    <div class="block-constraint">
+                        <div class="padless">
+                            <h1>RpHGDEF1 数据记录成器</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grand-body">
+                    <div class="block-constraint">
+                        <div class="padless">
+                            <section>
+                                <form class="form">
+                                    <div class="form-group mb-5">
+                                        <label class="h3 mb-3" for="">发生时间</label>
+                                        <div class="input-group mb-3">
+                                            <input type="text" class="form-control" id="formInput-time" value="5 分钟前（不可更改）" disabled>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-5" id="js-formGroupForEventClass">
+                                        <label class="h3 mb-3" for="">事件类型</label>
+                                    </div>
+                                    <script type="text/javascript">
+                                    (function () {
+                                        var classOptions = [
+                                            [ 'A', '自慰射精' ],
+                                            [ 'B', '飞机杯' ],
+                                            [ 'C', '标准性生活射精（统称）' ],
+                                            [ 'C1', '标准性生活射精（标准）' ],
+                                            [ 'C2', '标准性生活射精（口射）' ],
+                                            [ 'C3', '标准性生活射精（撸射）' ],
+                                            [ 'C4', '标准性生活射精（顶射）' ],
+                                            [ 'C4', '标准性生活射精（手动前列腺按摩）' ],
+                                            [ 'D', '拒绝指定类型' ],
+                                            [ 'E', '参与 C 类型的性生活但没有射精（例：作为受，或仅为他人口交）' ],
+                                            [ 'F', '在 BDSM 活动中的射精（统称）' ],
+                                            [ 'F1', '在 BDSM 活动中的射精（有射精意愿的）' ],
+                                            [ 'F2', '在 BDSM 活动中的射精（无射精意愿的）' ],
+                                            [ 'G', '遗精（统称）' ],
+                                            [ 'G1', '梦遗' ],
+                                            [ 'G2', '清醒状态下的遗精' ],
+                                            [ 'H', '多人娱乐活动' ],
+                                            [ 'K', '意外射精（例：直肠指检）' ]
+                                        ];
+                                        classOptions.map(function (x, i) {
+                                            document.querySelector('#js-formGroupForEventClass').innerHTML += `<div class="form-check">
+                                                <input class="form-check-input" type="radio" name="formInput-class" id="formInput-class--${x[0]}" value="${x[0]}" ${(i===0) ? 'checked' : ''}>
+                                                <label class="form-check-label" for="formInput-class--${x[0]}">
+                                                    ${x[0].match(/\d/) ? '<span>&nbsp;&nbsp;&nbsp;&nbsp;</span>' : ''}${x[0]}: ${x[1]}
+                                                </label>
+                                            </div>`;
+                                        });
+                                    })();
+                                    </script>
+
+                                    <div class="form-group mb-5">
+                                        <label class="h3 mb-3" for="">时区</label>
+                                        <div class="input-group mb-3">
+                                            <input type="text" class="form-control" id="formInput-time" value="UTC+0800（暂不支持手动选择）" disabled>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-5">
+                                        <button type="button" name="button" class="btn btn-primary btn-lg btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">生成</button>
+                                        <script type="text/javascript">
+                                        document.querySelector('button').addEventListener('click', function () {
+                                            var tmpArr = [
+                                                (new Date(Date.now()-5*60*1000)).toISOString(),
+                                                '',
+                                                '+0800'
+                                            ];
+                                            tmpArr[1] = document.querySelector('[name="formInput-class"]:checked').value;
+                                            var tmpStr = tmpArr.join(';')
+                                            document.querySelector('#js-finalOutputArea').innerHTML = tmpStr;
+                                            setTimeout(function () {
+                                                document.querySelector('#js-finalOutputArea').setAttribute('readonly', 'false');
+                                                document.querySelector('#js-finalOutputArea').select();
+                                            }, 10);
+                                        });
+                                        </script>
+                                    </div>
+
+                                    <div class="" id="">
+                                        <textarea id="js-finalOutputArea" style="
+                                            font-family: 'Source Code Pro', 'Menlo', monospace;
+                                            font-size: 16px;
+                                            background: #F5F5F5;
+                                            border: 1px solid #ced4da;
+                                            border-radius: 3.5px;
+                                            width: 100%;
+                                            height: 4em;
+                                            resize: none;
+                                            padding: 6px 8px;
+                                        " readonly="true">生成的结果将会显示在这里</textarea>
+                                    </div>
+                                </form>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grand-footer">
+                    <div class="block-constraint">
+                        <div class="padless">
+                            <p>© 2019 Neruthes</p>
+                            <p>本生成器用于创建符合 <a href="https://github.com/neruthes/RpHMGDEF1">RpHMGDEF1</a> 格式的单条记录数据</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
