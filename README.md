@@ -32,7 +32,8 @@ Permission is granted to copy, distribute and/or modify this document under the 
   - 4.2. 字段定义
   - 4.3. 字段值
 - 5\. 示例数据
-- 6\. 致谢
+- 6\. 实用工具
+- 7\. 致谢
 
 ## 1. 基本思想
 
