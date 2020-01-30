@@ -99,7 +99,9 @@
                 'localHour': localHour,
                 'localYYYYMMDD': localYYYYMMDD,
                 'dateIdentifier': dateIdentifier,
-                'class': entry['Class']
+                'Class': entry['Class'],
+                'Class_Macro': entry['Class_Macro'],
+                'Blur': entry['Blur']
             };
         };
         app.getDateIdentifierFromDateObj = function (dateObj) {
@@ -129,6 +131,7 @@
                 data.push({
                     'Time': record[0],
                     'Class': record[1],
+                    'Class_Macro': record[1].replace(/\d/g, ''),
                     'Timezone': record[2],
                     'Blur': record[3]
                 })
@@ -256,31 +259,80 @@
                 }
             },
             {
+                'codeName': 'classComposition',
+                'name': '类型构成',
+                'render': function (db) {
+                    var classOptions = [
+                        [ 'A', '自慰射精' ],
+                        [ 'B', '飞机杯' ],
+                        [ 'C', '标准性生活射精（统称）' ],
+                        [ 'C1', '标准性生活射精（标准）' ],
+                        [ 'C2', '标准性生活射精（口射）' ],
+                        [ 'C3', '标准性生活射精（撸射）' ],
+                        [ 'C4', '标准性生活射精（顶射）' ],
+                        [ 'C5', '标准性生活射精（手动前列腺按摩）' ],
+                        [ 'C6', '标准性生活射精（双头龙）' ],
+                        [ 'D', '未指定类型' ],
+                        [ 'E', '参与 C 类型的性生活但没有射精（例：作为受，或仅为他人口交）' ],
+                        [ 'F', '在 BDSM 活动中的射精（统称）' ],
+                        [ 'F1', '在 BDSM 活动中的射精（有射精意愿的）' ],
+                        [ 'F2', '在 BDSM 活动中的射精（无射精意愿的）' ],
+                        [ 'G', '遗精（统称）' ],
+                        [ 'G1', '梦遗' ],
+                        [ 'G2', '清醒状态下的遗精' ],
+                        [ 'H', '多人娱乐活动' ],
+                        [ 'H1', '多人娱乐活动中的一次射精' ],
+                        [ 'H2', '参与了一次多人娱乐活动，在过程未射精' ],
+                        [ 'K', '意外射精（例：直肠指检）' ]
+                    ];
+                    var classData = {};
+                    classOptions.map(x => {
+                        classData[x[0]] = {
+                            'code': x[0],
+                            'description': x[1],
+                            'count': 0
+                        };
+                    });
+                    // console.log(classData);
+                    db.map(entry => {
+                        var parsedEntry = app.parseEntryInfo(entry);
+                        classData[parsedEntry.Class].count = classData[parsedEntry.Class].count + 1;
+                        if (parsedEntry.Class !== parsedEntry.Class_Macro) {
+                            //  Also count for macro class
+                            classData[parsedEntry.Class_Macro].count = classData[parsedEntry.Class_Macro].count + 1;
+                        };
+                    });
+                    console.log('classData', classData);
+                    var nonZeroClassData = [];
+                    var maxCount = 0;
+                    classOptions.map(x => {
+                        if (classData[x[0]].count > 0) {
+                            nonZeroClassData.push(JSON.parse(JSON.stringify(classData[x[0]])));
+                        };
+                        if (classData[x[0]].count > maxCount) {
+                            maxCount = classData[x[0]].count;
+                            console.log('maxCount', maxCount);
+                        };
+                    });
+                    console.log('nonZeroClassData', nonZeroClassData);
+                    // return '<p>本功能尚未实现</p>';
+                    return charts.barsHorizontal({
+                        'rows': nonZeroClassData.map(function (x, i) {
+                            var barLength = x.count/maxCount;
+                            return [
+                                `${x.code}：${x.description}`,
+                                (x.count/app.db.length*100).toString().slice(0,8) + '%',
+                                (isNaN(barLength) ? 0 : barLength)
+                            ];
+                        })
+                    });
+                }
+            },
+            {
                 'codeName': 'dailyAverageOverMonths',
                 'name': '日均变化趋势',
                 'render': function (db) {
-                    // var hourGroups = (new Array(12)).fill(0);
-                    // var totalCounts = app.db.length;
-                    // app.db.map(function (x) {
-                    //     // console.log(app.parseEntryInfo(x).localHour);
-                    //     var currentHourGroup = Math.floor(parseInt(app.parseEntryInfo(x).localHour)/2);
-                    //     hourGroups[currentHourGroup] = hourGroups[currentHourGroup] + 1;
-                    // });
-                    // console.log(hourGroups);
-                    // var maxHour = Math.max.apply(null, hourGroups.map(function (x) {
-                    //     return x;
-                    // }));
                     return '<p>本功能尚未实现</p>';
-                    // return charts.barsHorizontal({
-                    //     'rows': hourGroups.map(function (x, i) {
-                    //         var barLength = x/maxHour;
-                    //         return [
-                    //             `${app.utils.leftpad((i*2).toString(),2,'0')}:00:00-${app.utils.leftpad((i*2+1).toString(),2,'0')}:59:59`,
-                    //             (x/app.db.length*100).toString().slice(0,5) + '%',
-                    //             (isNaN(barLength) ? 0 : barLength)
-                    //         ];
-                    //     })
-                    // });
                 }
             }
         ];
