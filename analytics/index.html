@@ -111,6 +111,9 @@
             });
             var data = [];
             tmp.map(function (record) {
+                if (record.length < 4) {
+                    return false;
+                }
                 if ((new Date(record[0])).toUTCString() === 'Invalid Date') {
                     return false;
                 };
@@ -120,10 +123,14 @@
                 if (!record[2].match(/^[-+0](0[0-9]|1[0-2])(00|30)$/)) {
                     return false;
                 };
+                if (!record[3].match(/^(accurate|blur)$/)) {
+                    return false;
+                };
                 data.push({
                     'Time': record[0],
                     'Class': record[1],
                     'Timezone': record[2],
+                    'Blur': record[3]
                 })
             });
             return data;
@@ -152,8 +159,9 @@
                     // Step 1: Find first date and last date
                     var explicitlyGivenDates = [];
                     db.map(function (entry) {
+                        var parsedEntry = app.parseEntryInfo(entry);
                         var dateIdentifier = app.parseEntryInfo(entry).dateIdentifier;
-                        explicitlyGivenDates.push(dateIdentifier);
+                        explicitlyGivenDates.push(parsedEntry.dateIdentifier);
                     });
                     var firstGivenDateStr = explicitlyGivenDates.sort()[0];
                     var lastGivenDateStr = explicitlyGivenDates.sort().reverse()[0];
@@ -225,7 +233,9 @@
                     var hourGroups = (new Array(12)).fill(0);
                     var totalCounts = app.db.length;
                     app.db.map(function (x) {
-                        // console.log(app.parseEntryInfo(x).localHour);
+                        if (app.parseEntryInfo(x).Blur !== 'accurate') {
+                            return 0;
+                        };
                         var currentHourGroup = Math.floor(parseInt(app.parseEntryInfo(x).localHour)/2);
                         hourGroups[currentHourGroup] = hourGroups[currentHourGroup] + 1;
                     });
@@ -336,23 +346,23 @@
                                 <button type="button" name="button" id="js-btnFillMockData" class="btn btn-link btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">使用样例数据</button>
                                 <script type="text/javascript">
                                 var sampleMockData = [
-                                    '2020-01-29T15:11:10.880Z;A;+0800',
-                                    '2020-01-29T17:32:10.880Z;A;+0800',
-                                    '2020-01-29T23:32:10.880Z;A;+0800',
-                                    '2020-01-31T17:32:10.880Z;A;+0800',
-                                    '2020-02-02T13:32:10.880Z;A;+0800',
-                                    '2020-02-03T13:32:10.880Z;A;+0800',
-                                    '2020-02-04T13:32:10.880Z;A;+0800',
-                                    '2020-02-05T13:32:10.880Z;A;+0800',
-                                    '2020-02-06T13:32:10.880Z;A;+0800',
-                                    '2020-02-07T13:32:10.880Z;A;+0800',
-                                    '2020-02-08T13:32:10.880Z;A;+0800',
-                                    '2020-02-09T13:32:10.880Z;A;+0800',
-                                    '2020-02-10T01:32:10.880Z;A;+0800',
-                                    '2020-02-10T04:32:10.880Z;A;+0800',
-                                    '2020-02-10T11:32:10.880Z;A;+0800',
-                                    '2020-02-10T12:32:10.880Z;A;+0800',
-                                    '2020-02-10T13:32:10.880Z;A;+0800'
+                                    '2020-01-29T15:11:10.880Z;A;+0800;accurate',
+                                    '2020-01-29T17:32:10.880Z;A;+0800;accurate',
+                                    '2020-01-29T23:32:10.880Z;A;+0800;accurate',
+                                    '2020-01-31T17:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-02T13:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-03T13:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-04T13:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-05T13:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-06T13:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-07T13:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-08T13:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-09T13:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-10T01:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-10T04:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-10T11:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-10T12:32:10.880Z;A;+0800;accurate',
+                                    '2020-02-10T13:32:10.880Z;A;+0800;accurate'
                                 ].join('\n');
                                 document.querySelector('#js-btnFillMockData').addEventListener('click', function () {
                                     document.querySelectorAll(`[data-for-analyzer]`).forEach(function (x) {
