@@ -157,8 +157,8 @@ K   | 意外射精（例：直肠指检）
 
 ## 6. 实用工具
 
-- [joyneop.xyz/RpHMGDEF1](https://joyneop.xyz/RpHMGDEF1/) 单条记录生成工具（by Neruthes）
-- [joyneop.xyz/RpHMGDEF1/analytics](https://joyneop.xyz/RpHMGDEF1/analytics/) 基本数据分析工具（by Neruthes）
+- [neruthes.xyz/RpHMGDEF1](https://neruthes.xyz/RpHMGDEF1/) 单条记录生成工具（by Neruthes）
+- [neruthes.xyz/RpHMGDEF1/analytics](https://neruthes.xyz/RpHMGDEF1/analytics/) 基本数据分析工具（by Neruthes）
 
 ## 7. 致谢
 
