@@ -9,7 +9,7 @@
         .mycard table * {
             border: none;
         }
-        .mycard table * {
+        .mycard p, .mycard table * {
             font-family: 'Source Code Pro', 'Menlo', monospace, 'PingFang SC', 'Noto Sans CJK SC', 'Source Han Sans CN';
         }
         .mycard table td {
@@ -58,7 +58,7 @@
             if (arr.length === 0) {
                 return NaN;
             };
-            return arr.reduce((x,y)=>x+y)/arr.length;
+            return arr.reduce((x,y) => x+y)/arr.length;
         };
         app.utils.rightpad = function (str, len, pad) {
             return str + (new Array(len-str.length)).fill(pad).join('');
@@ -145,6 +145,68 @@
                 'comments': app.comments
             };
         };
+        app.getCommonUsableData = function () {
+            // Overall idea:
+            // Find first date and last date; fill the gaps; generate a fill list of dates, as sorted.
+            // Get counts for each date.
+            // Get total dates of each weekday
+            // End
+            // ------------------------------------------
+            // Step 1: Find first date and last date
+            var explicitlyGivenDates = [];
+            app.db.map(function (entry) {
+                var parsedEntry = app.parseEntryInfo(entry);
+                var dateIdentifier = app.parseEntryInfo(entry).dateIdentifier;
+                explicitlyGivenDates.push(parsedEntry.dateIdentifier);
+            });
+            var firstGivenDateStr = explicitlyGivenDates.sort()[0];
+            var lastGivenDateStr = explicitlyGivenDates.sort().reverse()[0];
+            // console.log(explicitlyGivenDates);
+            console.log('firstGivenDateStr', firstGivenDateStr);
+            console.log('lastGivenDateStr', lastGivenDateStr);
+            // Step 2: Fill the gaps to have a full list of dates
+            var listOfDates = {};
+            listOfDates[firstGivenDateStr] = 0;
+            listOfDates[lastGivenDateStr] = 0;
+            (function () {
+                var initialDateStr = firstGivenDateStr.split('|')[0];
+                var initialDateObj = new Date(initialDateStr + 'T00:00:05.000Z');
+                var currentDateObj = new Date(initialDateStr + 'T00:00:05.000Z');
+                var lastDateStr = lastGivenDateStr.split('|')[0];
+                var lastDateObj = new Date(lastDateStr + 'T00:00:05.000Z');
+                console.log('initialDateObj', initialDateObj);
+                var getNextDay = function (dateObj) {
+                    return new Date(dateObj.getTime()+24*3600*1000);
+                };
+                while (getNextDay(currentDateObj).getTime() <= lastDateObj.getTime()) {
+                    listOfDates[app.getDateIdentifierFromDateObj(currentDateObj)] = 0;
+                    currentDateObj = getNextDay(currentDateObj);
+                };
+                // console.log(listOfDates);
+            })();
+            // Step 3: Calculate counts of each date
+            app.db.map(function (entry) {
+                listOfDates[app.parseEntryInfo(entry).dateIdentifier] += 1;
+            });
+            // Step 4: Fill into each weekday
+            var daysInWeek = [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+            ];
+            console.log(listOfDates);
+            Object.keys(listOfDates).sort().map(function (dateIdentifier) {
+                var dayId = app.dicts.dayNameToIndex[dateIdentifier.split('|')[1]];
+                daysInWeek[dayId] = daysInWeek[dayId].concat(listOfDates[dateIdentifier]);
+            });
+            console.log(daysInWeek);
+            window.daysInWeek = daysInWeek;
+            window.totalDatesInCalendar = daysInWeek.map(x => x.length).reduce((a,b) => a+b);
+        };
         app.analyzers = [
             {
                 'codeName': 'basicParsing',
@@ -158,67 +220,19 @@
                 }
             },
             {
+                'codeName': 'basicAnalysis',
+                'name': '基本概况',
+                'render': function (db, rawDataStr) {
+                    return `<p>时间跨度 ${totalDatesInCalendar} 天</p>
+                    <p>共计 ${app.db.length} 次事件</p>
+                    <p>平均每天 ${(app.db.length/totalDatesInCalendar).toString().slice(0,6)} 次</p>`;
+                }
+            },
+            {
                 'codeName': 'weeklyActivity',
                 'name': '星期分布',
                 'render': function (db) {
-                    // Overall idea:
-                    // Find first date and last date; fill the gaps; generate a fill list of dates, as sorted.
-                    // Get counts for each date.
-                    // Get total dates of each weekday
-                    // End
-                    // ------------------------------------------
-                    // Step 1: Find first date and last date
-                    var explicitlyGivenDates = [];
-                    db.map(function (entry) {
-                        var parsedEntry = app.parseEntryInfo(entry);
-                        var dateIdentifier = app.parseEntryInfo(entry).dateIdentifier;
-                        explicitlyGivenDates.push(parsedEntry.dateIdentifier);
-                    });
-                    var firstGivenDateStr = explicitlyGivenDates.sort()[0];
-                    var lastGivenDateStr = explicitlyGivenDates.sort().reverse()[0];
-                    // console.log(explicitlyGivenDates);
-                    console.log('firstGivenDateStr', firstGivenDateStr);
-                    console.log('lastGivenDateStr', lastGivenDateStr);
-                    // Step 2: Fill the gaps to have a full list of dates
-                    var listOfDates = {};
-                    listOfDates[firstGivenDateStr] = 0;
-                    listOfDates[lastGivenDateStr] = 0;
-                    (function () {
-                        var initialDateStr = firstGivenDateStr.split('|')[0];
-                        var initialDateObj = new Date(initialDateStr + 'T00:00:05.000Z');
-                        var currentDateObj = new Date(initialDateStr + 'T00:00:05.000Z');
-                        var lastDateStr = lastGivenDateStr.split('|')[0];
-                        var lastDateObj = new Date(lastDateStr + 'T00:00:05.000Z');
-                        console.log('initialDateObj', initialDateObj);
-                        var getNextDay = function (dateObj) {
-                            return new Date(dateObj.getTime()+24*3600*1000);
-                        };
-                        while (getNextDay(currentDateObj).getTime() <= lastDateObj.getTime()) {
-                            listOfDates[app.getDateIdentifierFromDateObj(currentDateObj)] = 0;
-                            currentDateObj = getNextDay(currentDateObj);
-                        };
-                        // console.log(listOfDates);
-                    })();
-                    // Step 3: Calculate counts of each date
-                    app.db.map(function (entry) {
-                        listOfDates[app.parseEntryInfo(entry).dateIdentifier] += 1;
-                    });
-                    // Step 4: Fill into each weekday
-                    var daysInWeek = [
-                        [],
-                        [],
-                        [],
-                        [],
-                        [],
-                        [],
-                        []
-                    ];
-                    console.log(listOfDates);
-                    Object.keys(listOfDates).sort().map(function (dateIdentifier) {
-                        var dayId = app.dicts.dayNameToIndex[dateIdentifier.split('|')[1]];
-                        daysInWeek[dayId] = daysInWeek[dayId].concat(listOfDates[dateIdentifier]);
-                    });
-                    console.log(daysInWeek);
+                    app.getCommonUsableData();
                     // Step 5: Generate result output
                     var maxDay = Math.max.apply(null, daysInWeek.map(function (x) {
                         return app.utils.average(x);
@@ -302,7 +316,7 @@
                         };
                     });
                     // console.log(classData);
-                    db.map(entry => {
+                    app.db.map(entry => {
                         var parsedEntry = app.parseEntryInfo(entry);
                         classData[parsedEntry.Class].count = classData[parsedEntry.Class].count + 1;
                         if (parsedEntry.Class !== parsedEntry.Class_Macro) {
@@ -348,6 +362,7 @@
             localStorage[app.env.lsk+'rawDataInput'] = document.querySelector('#js-initialInputArea').value;
             app.db = app.dataParser(document.querySelector('#js-initialInputArea').value).realData;
             if (app.db.length > 0) {
+                app.getCommonUsableData();
                 app.analyzers.map(function (worker) {
                     document.querySelector(`[data-for-analyzer="${worker.codeName}"]`).innerHTML = worker.render(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
                 });
