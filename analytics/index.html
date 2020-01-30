@@ -108,11 +108,15 @@
             return dateObj.toISOString().slice(0,10) + '|' + ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dateObj.getUTCDay()];
         };
         app.dataParser = function (rawDataStr) {
-            var tmp = rawDataStr.trim().replace(/\n+/g, '\n').split('\n').map(function (x) {
-                return x.split(';');
-            });
+            var tmp = rawDataStr.trim().replace(/\n+/g, '\n').split('\n');
             var data = [];
-            tmp.map(function (record) {
+            app.comments = [];
+            tmp.map(function (rawRecord) {
+                var record = rawRecord.split(';');
+                if (record[0][0] === '#') {
+                    app.comments.push(record.join(';'));
+                    return false;
+                };
                 if (record.length < 4) {
                     return false;
                 }
@@ -136,7 +140,10 @@
                     'Blur': record[3]
                 })
             });
-            return data;
+            return {
+                'realData': data,
+                'comments': app.comments
+            };
         };
         app.analyzers = [
             {
@@ -144,7 +151,8 @@
                 'name': '基本数据解析',
                 'render': function (db, rawDataStr) {
                     return [
-                        `读入数据 ${rawDataStr.trim().replace(/\n+/g, '\n').split('\n').length} 行`,
+                        `读入注释 ${app.comments.length} 行`,
+                        `读入数据 ${rawDataStr.trim().replace(/\n+/g, '\n').split('\n').length-app.comments.length} 行`,
                         `其中有效数据 ${db.length} 行`
                     ].map(function (x) {return `<p>${x}</p>`}).join('');
                 }
@@ -338,7 +346,7 @@
         ];
         app.start = function () {
             localStorage[app.env.lsk+'rawDataInput'] = document.querySelector('#js-initialInputArea').value;
-            app.db = app.dataParser(document.querySelector('#js-initialInputArea').value);
+            app.db = app.dataParser(document.querySelector('#js-initialInputArea').value).realData;
             if (app.db.length > 0) {
                 app.analyzers.map(function (worker) {
                     document.querySelector(`[data-for-analyzer="${worker.codeName}"]`).innerHTML = worker.render(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
@@ -398,6 +406,8 @@
                                 <button type="button" name="button" id="js-btnFillMockData" class="btn btn-link btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">使用样例数据</button>
                                 <script type="text/javascript">
                                 var sampleMockData = [
+                                    '# Sample Data',
+                                    '# For sample purpose only',
                                     '2020-01-29T15:11:10.880Z;A;+0800;accurate',
                                     '2020-01-29T17:32:10.880Z;A;+0800;accurate',
                                     '2020-01-29T23:32:10.880Z;A;+0800;accurate',
