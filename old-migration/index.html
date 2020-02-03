@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-Hans" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>旧版数据迁移工具</title>
+        <link rel="stylesheet" href="../css/bootstrap.css">
+        <link rel="stylesheet" href="../css/app.css">
+        <style media="screen">
+        .mycard table * {
+            border: none;
+        }
+        .mycard p, .mycard table * {
+            font-family: 'Source Code Pro', 'Menlo', monospace, 'PingFang SC', 'Noto Sans CJK SC', 'Source Han Sans CN';
+        }
+        .mycard table td {
+            background-clip: content-box !important;
+            padding: 0px 0px 8px;
+        }
+        .mycard table td:first-child {
+            width: 40%;
+        }
+        .mycard table .table-cell-real-content {
+            border-radius: 3.5px;
+            display: block !important;
+            width: 100%;
+            padding: 5px 8px;
+        }
+        </style>
+        <script type="text/javascript">
+        </script>
+        <script type="text/javascript">
+        window.app = {};
+        app.env = {
+            lsk: 'd9a86f37c0554168a722caf7fbb4adcd_'
+        };
+        app.utils = {};
+        app.utils.average = function (arr) {
+            if (arr.length === 0) {
+                return NaN;
+            };
+            return arr.reduce((x,y) => x+y)/arr.length;
+        };
+        app.utils.rightpad = function (str, len, pad) {
+            return str + (new Array(len-str.length)).fill(pad).join('');
+        };
+        app.utils.leftpad = function (str, len, pad) {
+            return (new Array(len-str.length)).fill(pad).join('') + str;
+        };
+        app.utils.addMissingDecimalDot = function (str) {
+            if (str.indexOf('.') === -1) {
+                return str + '.'
+            } else {
+                return str;
+            };
+        };
+        app.start = function () {
+            localStorage[app.env.lsk+'rawDataInput'] = document.querySelector('#js-initialInputArea').value;
+            var rawInputStr = document.querySelector('#js-initialInputArea').value;
+            var rawInputStr_sample = '2.1 aa 2\n\n2.2 aaa 3';
+            var normalizedInputData = rawInputStr.trim().replace(/\n+/g, '\n').split('\n');
+            var validDataEntries = [];
+            var dailyDataRegExp = /(\d{1,2})\.(\d{1,2})\s?([a-d]{1,128})/i;
+            var currentYear = (new Date()).getFullYear().toString();
+            normalizedInputData.map(line => {
+                var m = line.match(dailyDataRegExp);
+                if (m !== null) {
+                    // Match found
+                    var day = {
+                        'month': m[1],
+                        'day': m[2],
+                        'events': m[3].split('')
+                    };
+                    day.events.map(ev => {
+                        validDataEntries.push([
+                            `${currentYear}-${
+                                app.utils.leftpad(day.month.toString(), 2, '0')
+                            }-${
+                                app.utils.leftpad(day.day.toString(), 2, '0')
+                            }T01:23:45.678Z`,
+                            ev.toUpperCase(),
+                            '+0800',
+                            'blur',
+                            '',
+                        ].join(';'));
+                    });
+                    // console.log(validDataEntries);
+                    document.querySelector('#js-finalOutputArea').value = validDataEntries.join('\n');
+                };
+            });
+        };
+        </script>
+    </head>
+    <body>
+        <div class="world">
+            <div class="cont">
+                <div class="grand-header" style="padding: 60px 0 30px;">
+                    <div class="block-constraint">
+                        <div class="padless">
+                            <h1>旧版数据迁移工具</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grand-body">
+                    <div class="block-constraint">
+                        <div class="padless">
+                            <h3 class="mb-4">输入原始数据</h3>
+                            <div class="mb-4" id="">
+                                <textarea id="js-initialInputArea" style="
+                                    font-family: 'Source Code Pro', 'Menlo', monospace;
+                                    font-size: 16px;
+                                    background: #FFF;
+                                    border: 1px solid #ced4da;
+                                    border-radius: 3.5px;
+                                    width: 100%;
+                                    height: 8em;
+                                    resize: none;
+                                    padding: 6px 8px;
+                                " placeholder="在此粘贴原始数据" autofocus></textarea>
+                                <script type="text/javascript">
+                                if (localStorage[app.env.lsk+'rawDataInput'] !== undefined) {
+                                    document.querySelector('#js-initialInputArea').value = localStorage[app.env.lsk+'rawDataInput'];
+                                };
+                                </script>
+                            </div>
+                            <div class="form-group mb-3">
+                                <button type="button" name="button" id="js-btnAnalyzeStart" class="btn btn-primary btn-lg btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">转化数据</button>
+                                <script type="text/javascript">
+                                document.querySelector('#js-btnAnalyzeStart').addEventListener('click', function () {
+                                    setTimeout(app.start, 300);
+                                });
+                                window.addEventListener('load', function () { setTimeout(app.start, 350); });
+                                </script>
+                            </div>
+                            <div class="form-group mb-5">
+                                <button type="button" name="button" id="js-btnFillMockData" class="btn btn-link btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">使用样例数据</button>
+                                <script type="text/javascript">
+                                var sampleMockData = [
+                                    '# Sample Data',
+                                    '# For sample purpose only',
+                                    '2.1 aa 2',
+                                    '',
+                                    '2.2 aaa 3'
+                                ].join('\n');
+                                document.querySelector('#js-btnFillMockData').addEventListener('click', function () {
+                                    document.querySelector('#js-initialInputArea').value = sampleMockData;
+                                    setTimeout(app.start, 300);
+                                });
+                                </script>
+                            </div>
+                        </div>
+
+                        <style media="screen">
+                        .mycard {
+                            box-shadow: rgba(0, 0, 0, 0.06) 0 3px 24px 1px;
+                            border: 1px solid rgba(0, 0, 0, 0.04);
+                            border-radius: 7px;
+                            padding: 30px 20px;
+                            margin: 0 0 30px;
+                        }
+                        .mycard h3 {
+                            /* padding: 0px 0 0; */
+                        }
+                        </style>
+                        <div id="js-listOfReportCards">
+                            <div class="" id="">
+                                <textarea id="js-finalOutputArea" style="
+                                    font-family: 'Source Code Pro', 'Menlo', monospace;
+                                    font-size: 16px;
+                                    background: #F5F5F5;
+                                    border: 1px solid #ced4da;
+                                    border-radius: 3.5px;
+                                    width: 100%;
+                                    height: 8em !important;
+                                    resize: none;
+                                    padding: 6px 8px;
+                                " readonly="true">生成的结果将会显示在这里</textarea>
+                            </div>
+                        </div>
+                        <script type="text/javascript">
+                        </script>
+                    </div>
+                </div>
+
+                <div class="grand-footer">
+                    <div class="block-constraint">
+                        <div class="padless">
+                            <p>© 2020<script>
+                            document.write(
+                                ((new Date()).getFullYear() === 2020) ? '' : ('-' + (new Date()).getFullYear())
+                            );
+                            </script> Neruthes</p>
+                            <p>本工具用于将旧版每日总结数据迁移工具转化为 <a href="https://github.com/neruthes/RpHMGDEF1">RpHMGDEF1</a> 格式的数据</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
