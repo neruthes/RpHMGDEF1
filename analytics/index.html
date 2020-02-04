@@ -234,14 +234,19 @@
                 'codeName': 'weeklyActivity',
                 'name': '星期分布',
                 'render': function (db) {
-                    app.getCommonUsableData();
                     // Step 5: Generate result output
-                    var maxDay = Math.max.apply(null, app.vars.daysInWeek.map(function (x) {
+                    var weeklyActivity_totalValidDays = Math.min.apply(null, app.vars.daysInWeek.map(function (x) {
+                        return x.length;
+                    }));
+                    app.vars.daysInWeek_RoundedWeeksOnly = app.vars.daysInWeek.map(function (x) {
+                        return x.slice(0, weeklyActivity_totalValidDays);
+                    });
+
+                    var maxDay = Math.max.apply(null, app.vars.daysInWeek_RoundedWeeksOnly.map(function (x) {
                         return app.utils.average(x);
                     }));
-                    console.log('maxDay', maxDay);
                     return charts.barsHorizontal({
-                        'rows': app.vars.daysInWeek.map(function (x, i) {
+                        'rows': app.vars.daysInWeek_RoundedWeeksOnly.map(function (x, i) {
                             var normalizedNumber = app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(x).toString().slice(0,7)),7,'0');
                             var barLength = app.utils.average(x)/maxDay;
                             return [
