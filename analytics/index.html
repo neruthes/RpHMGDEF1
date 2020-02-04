@@ -9,6 +9,12 @@
         .mycard table * {
             border: none;
         }
+        .mycard p {
+            line-height: 20px;
+            padding: 5px 0 15px;
+            margin: 0;
+            /* margin: 0 0 10px; */
+        }
         .mycard p, .mycard table * {
             font-family: 'Source Code Pro', 'Menlo', monospace, 'PingFang SC', 'Noto Sans CJK SC', 'Source Han Sans CN';
         }
@@ -37,8 +43,8 @@
             // var dataObj = JSON.parse(JSON.stringify(dataObj_sample));
             var arr = dataObj.rows.map(function (row) {
                 return `<tr>
-                    <td>${row[0]}</td>
-                    <td><span class="table-cell-real-content" style="background-image: linear-gradient(90deg, #F3F3F3 ${row[2]*100}%, #FFF ${row[2]*100}%);">${row[1]}</span></td>
+                    <td style="padding: 5px 0 0;">${row[0]}</td>
+                    <td style="height: 40px;"><span class="table-cell-real-content" style="line-height: 20px; height: 30px; background-image: linear-gradient(90deg, #F3F3F3 ${row[2]*100}%, #FFF ${row[2]*100}%);">${row[1]}</span></td>
                 </tr>`;
             }).join('');
             return `<table class="table table-bordered1" style="">
@@ -245,12 +251,12 @@
                     var maxDay = Math.max.apply(null, app.vars.daysInWeek_RoundedWeeksOnly.map(function (x) {
                         return app.utils.average(x);
                     }));
-                    return charts.barsHorizontal({
+                    return `<p>样本量: ${weeklyActivity_totalValidDays}</p>` + charts.barsHorizontal({
                         'rows': app.vars.daysInWeek_RoundedWeeksOnly.map(function (x, i) {
                             var normalizedNumber = app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(x).toString().slice(0,7)),7,'0');
                             var barLength = app.utils.average(x)/maxDay;
                             return [
-                                '周' + '日一二三四五六'[i] + `（样本量：${x.length}）`,
+                                '周' + '日一二三四五六'[i],
                                 (function (x) { return ( x.indexOf('NaN') === -1 ? x : '-' )})(normalizedNumber),
                                 (isNaN(barLength) ? 0 : barLength)
                             ];
@@ -352,7 +358,7 @@
                         'rows': nonZeroClassData.map(function (x, i) {
                             var barLength = x.count/maxCount;
                             return [
-                                `${x.code}：${x.description}`,
+                                `${x.code}: ${x.description}`,
                                 (x.count/app.vars.classComposition_totalValidDays*100).toString().slice(0,8) + '%',
                                 (isNaN(barLength) ? 0 : barLength)
                             ];
