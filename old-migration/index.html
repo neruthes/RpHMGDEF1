@@ -61,21 +61,30 @@
             var validDataEntries = [];
             var dailyDataRegExp = /(\d{1,2})\.(\d{1,2})\s?([a-d]{1,128})/i;
             var currentYear = (new Date()).getFullYear().toString();
+            var filledDates = {};
             normalizedInputData.map(line => {
                 var m = line.match(dailyDataRegExp);
                 if (m !== null) {
                     // Match found
                     var day = {
-                        'month': m[1],
-                        'day': m[2],
+                        'month': parseInt(m[1]),
+                        'date': parseInt(m[2]),
                         'events': m[3].split('')
                     };
+                    // Error handling
+                    if (day.month > 12 || day.month < 1) { // Invalid month
+                        return 1;
+                    };
+                    if (day.date > [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][day.month]) { // Invalid day
+                        return 1;
+                    };
+                    filledDates[`${currentYear}-${day.month}-${day.date}`] = [];
                     day.events.map(ev => {
-                        validDataEntries.push([
+                        filledDates[`${currentYear}-${day.month}-${day.date}`].push([
                             `${currentYear}-${
                                 app.utils.leftpad(day.month.toString(), 2, '0')
                             }-${
-                                app.utils.leftpad(day.day.toString(), 2, '0')
+                                app.utils.leftpad(day.date.toString(), 2, '0')
                             }T01:23:45.678Z`,
                             ev.toUpperCase(),
                             '+0800',
@@ -83,10 +92,13 @@
                             '',
                         ].join(';'));
                     });
-                    // console.log(validDataEntries);
-                    document.querySelector('#js-finalOutputArea').value = validDataEntries.join('\n');
                 };
             });
+            Object.keys(filledDates).sort().map(dateName => {
+                filledDates[dateName].map(entry => validDataEntries.push(entry));
+            });
+            console.log(validDataEntries);
+            document.querySelector('#js-finalOutputArea').value = validDataEntries.join('\n');
         };
         </script>
     </head>
@@ -135,12 +147,12 @@
                             <div class="form-group mb-5">
                                 <button type="button" name="button" id="js-btnFillMockData" class="btn btn-link btn-block" style="width: 60%; min-width: 200px; max-width: 300px; margin-left: auto; margin-right: auto;">使用样例数据</button>
                                 <script type="text/javascript">
-                                var sampleMockData = [
+                                window.sampleMockData = [
                                     '# Sample Data',
                                     '# For sample purpose only',
-                                    '2.1 aa 2',
-                                    '',
-                                    '2.2 aaa 3'
+                                    '2.1 A 1',
+                                    '2.2 aa 2',
+                                    '2.2 aabc 4'
                                 ].join('\n');
                                 document.querySelector('#js-btnFillMockData').addEventListener('click', function () {
                                     document.querySelector('#js-initialInputArea').value = sampleMockData;
@@ -174,7 +186,7 @@
                                     height: 8em !important;
                                     resize: none;
                                     padding: 6px 8px;
-                                " readonly="true">生成的结果将会显示在这里</textarea>
+                                ">生成的结果将会显示在这里</textarea>
                             </div>
                         </div>
                         <script type="text/javascript">

@@ -89,7 +89,6 @@
                                             var tmpStr = tmpArr.join(';')
                                             document.querySelector('#js-finalOutputArea').innerHTML = tmpStr;
                                             setTimeout(function () {
-                                                document.querySelector('#js-finalOutputArea').setAttribute('readonly', 'false');
                                                 document.querySelector('#js-finalOutputArea').select();
                                             }, 10);
                                         });
@@ -107,7 +106,7 @@
                                             height: 8em !important;
                                             resize: none;
                                             padding: 6px 8px;
-                                        " readonly="true">生成的结果将会显示在这里</textarea>
+                                        ">生成的结果将会显示在这里</textarea>
                                     </div>
                                 </form>
                             </section>
