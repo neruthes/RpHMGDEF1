@@ -317,12 +317,16 @@
                         };
                     });
                     // console.log(classData);
-                    app.db.map(entry => {
+                    app.vars.classComposition_totalValidDays = 0;
+                    app.db.map((entry, i) => {
                         var parsedEntry = app.parseEntryInfo(entry);
-                        classData[parsedEntry.Class].count = classData[parsedEntry.Class].count + 1;
-                        if (parsedEntry.Class !== parsedEntry.Class_Macro) {
-                            //  Also count for macro class
-                            classData[parsedEntry.Class_Macro].count = classData[parsedEntry.Class_Macro].count + 1;
+                        if ( (new Date(entry.Time)).getTime() > (new Date('2019-08-10T00:00:00.000Z')) ) { // Later than 2019-08-10
+                            app.vars.classComposition_totalValidDays = app.vars.classComposition_totalValidDays + 1;
+                            classData[parsedEntry.Class].count = classData[parsedEntry.Class].count + 1;
+                            if (parsedEntry.Class !== parsedEntry.Class_Macro) {
+                                //  Also count for macro class
+                                classData[parsedEntry.Class_Macro].count = classData[parsedEntry.Class_Macro].count + 1;
+                            };
                         };
                     });
                     console.log('classData', classData);
@@ -338,13 +342,12 @@
                         };
                     });
                     console.log('nonZeroClassData', nonZeroClassData);
-                    // return '<p>本功能尚未实现</p>';
                     return charts.barsHorizontal({
                         'rows': nonZeroClassData.map(function (x, i) {
                             var barLength = x.count/maxCount;
                             return [
                                 `${x.code}：${x.description}`,
-                                (x.count/app.db.length*100).toString().slice(0,8) + '%',
+                                (x.count/app.vars.classComposition_totalValidDays*100).toString().slice(0,8) + '%',
                                 (isNaN(barLength) ? 0 : barLength)
                             ];
                         })
