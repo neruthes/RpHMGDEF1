@@ -53,6 +53,7 @@
         app.env = {
             lsk: 'd9a86f37c0554168a722caf7fbb4adcc_'
         };
+        app.vars = {};
         app.utils = {};
         app.utils.average = function (arr) {
             if (arr.length === 0) {
@@ -204,8 +205,8 @@
                 daysInWeek[dayId] = daysInWeek[dayId].concat(listOfDates[dateIdentifier]);
             });
             console.log(daysInWeek);
-            window.daysInWeek = daysInWeek;
-            window.totalDatesInCalendar = daysInWeek.map(x => x.length).reduce((a,b) => a+b);
+            app.vars.daysInWeek = daysInWeek;
+            app.vars.totalDatesInCalendar = daysInWeek.map(x => x.length).reduce((a,b) => a+b);
         };
         app.analyzers = [
             {
@@ -223,9 +224,9 @@
                 'codeName': 'basicAnalysis',
                 'name': '基本概况',
                 'render': function (db, rawDataStr) {
-                    return `<p>时间跨度 ${totalDatesInCalendar} 天</p>
+                    return `<p>时间跨度 ${app.vars.totalDatesInCalendar} 天</p>
                     <p>共计 ${app.db.length} 次事件</p>
-                    <p>平均每天 ${(app.db.length/totalDatesInCalendar).toString().slice(0,6)} 次</p>`;
+                    <p>平均每天 ${(app.db.length/app.vars.totalDatesInCalendar).toString().slice(0,6)} 次</p>`;
                 }
             },
             {
@@ -234,12 +235,12 @@
                 'render': function (db) {
                     app.getCommonUsableData();
                     // Step 5: Generate result output
-                    var maxDay = Math.max.apply(null, daysInWeek.map(function (x) {
+                    var maxDay = Math.max.apply(null, app.vars.daysInWeek.map(function (x) {
                         return app.utils.average(x);
                     }));
                     console.log('maxDay', maxDay);
                     return charts.barsHorizontal({
-                        'rows': daysInWeek.map(function (x, i) {
+                        'rows': app.vars.daysInWeek.map(function (x, i) {
                             var normalizedNumber = app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(x).toString().slice(0,7)),7,'0');
                             var barLength = app.utils.average(x)/maxDay;
                             return [
@@ -359,15 +360,52 @@
             }
         ];
         app.start = function () {
-            localStorage[app.env.lsk+'rawDataInput'] = document.querySelector('#js-initialInputArea').value;
-            app.db = app.dataParser(document.querySelector('#js-initialInputArea').value).realData;
-            if (app.db.length > 0) {
-                app.getCommonUsableData();
-                app.analyzers.map(function (worker) {
-                    document.querySelector(`[data-for-analyzer="${worker.codeName}"]`).innerHTML = worker.render(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
+            // Save textarea input to localStorage
+            localStorage[app.env.lsk+'rawDataInput'] = document.querySelector('#js-initialInputArea').value.trim();
+            // Actions
+            var realStart = function () {
+                app.db = app.dataParser(app.vars.givenRawData).realData;
+                if (app.db.length > 0) {
+                    app.getCommonUsableData();
+                    app.analyzers.map(function (worker) {
+                        document.querySelector(`[data-for-analyzer="${worker.codeName}"]`).innerHTML = worker.render(JSON.parse(JSON.stringify(app.db)), app.vars.givenRawData);
+                    });
+                } else {
+                    document.querySelector(`[data-for-analyzer="basicParsing"]`).innerHTML = app.analyzers[0].render(JSON.parse(JSON.stringify(app.db)), app.vars.givenRawData);
+                };
+            };
+            var preloadRemoteFile_matchCriteria = /^[?&]txturl=([^?&=#]+)/;
+            if (location.search.match(preloadRemoteFile_matchCriteria)) {
+                // If predefined in URL, skip textarea
+                var matchResult = location.search.match(preloadRemoteFile_matchCriteria);
+                var url = atob(matchResult[1]);
+                console.log(url);
+                window.xhr = new XMLHttpRequest();
+                xhr.open('GET', document.querySelector('#js-initialInputArea').value.trim());
+                xhr.addEventListener('load', function (e) {
+                    console.log(e.target.responseText);
+                    if (e.target.status != 200 && e.target.status != 304) {
+                        // 404, 503, etc
+                        alert('Error: Remote file not found');
+                    } else {
+                        // Good load
+                        app.vars.givenRawData = e.target.responseText;
+                        realStart();
+                    };
                 });
+                xhr.send();
+                return 0; // End early
+            };
+            // Start
+            var txtUrlRegExp = /^https:.+\.txt$/;
+            if (document.querySelector('#js-initialInputArea').value.trim().match(txtUrlRegExp)) {
+                // Change current URL
+                location.replace('?txturl=' + btoa(document.querySelector('#js-initialInputArea').value.trim().match(txtUrlRegExp)).replace(/=/g, ''))
+                return 0;
             } else {
-                document.querySelector(`[data-for-analyzer="basicParsing"]`).innerHTML = app.analyzers[0].render(JSON.parse(JSON.stringify(app.db)), document.querySelector('#js-initialInputArea').value);
+                app.vars.givenRawData = document.querySelector('#js-initialInputArea').value;
+                realStart();
+                return 0;
             };
         };
         </script>
@@ -398,7 +436,7 @@
                                     height: 8em;
                                     resize: none;
                                     padding: 6px 8px;
-                                " placeholder="在此粘贴原始数据" autofocus></textarea>
+                                " placeholder="在此粘贴原始数据，或远程文件 URL" autofocus></textarea>
                                 <script type="text/javascript">
                                 if (localStorage[app.env.lsk+'rawDataInput'] !== undefined) {
                                     document.querySelector('#js-initialInputArea').value = localStorage[app.env.lsk+'rawDataInput'];
