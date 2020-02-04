@@ -51,7 +51,8 @@
         <script type="text/javascript">
         window.app = {};
         app.env = {
-            lsk: 'd9a86f37c0554168a722caf7fbb4adcc_'
+            lsk: 'd9a86f37c0554168a722caf7fbb4adcc_',
+            preloadRemoteFile_matchCriteria: /^[?&]txturl=([^?&=#]+)/
         };
         app.vars = {};
         app.utils = {};
@@ -362,53 +363,38 @@
                 }
             }
         ];
+        app.realStart = function () {
+            app.db = app.dataParser(app.vars.givenRawData).realData;
+            if (app.db.length > 0) {
+                app.getCommonUsableData();
+                app.analyzers.map(function (worker) {
+                    document.querySelector(`[data-for-analyzer="${worker.codeName}"]`).innerHTML = worker.render(JSON.parse(JSON.stringify(app.db)), app.vars.givenRawData);
+                });
+            } else {
+                document.querySelector(`[data-for-analyzer="basicParsing"]`).innerHTML = app.analyzers[0].render(JSON.parse(JSON.stringify(app.db)), app.vars.givenRawData);
+            };
+        };
         app.start = function () {
             // Save textarea input to localStorage
             localStorage[app.env.lsk+'rawDataInput'] = document.querySelector('#js-initialInputArea').value.trim();
-            // Actions
-            var realStart = function () {
-                app.db = app.dataParser(app.vars.givenRawData).realData;
-                if (app.db.length > 0) {
-                    app.getCommonUsableData();
-                    app.analyzers.map(function (worker) {
-                        document.querySelector(`[data-for-analyzer="${worker.codeName}"]`).innerHTML = worker.render(JSON.parse(JSON.stringify(app.db)), app.vars.givenRawData);
-                    });
-                } else {
-                    document.querySelector(`[data-for-analyzer="basicParsing"]`).innerHTML = app.analyzers[0].render(JSON.parse(JSON.stringify(app.db)), app.vars.givenRawData);
-                };
-            };
-            var preloadRemoteFile_matchCriteria = /^[?&]txturl=([^?&=#]+)/;
-            if (location.search.match(preloadRemoteFile_matchCriteria)) {
-                // If predefined in URL, skip textarea
-                var matchResult = location.search.match(preloadRemoteFile_matchCriteria);
-                var url = atob(matchResult[1]);
-                console.log(url);
-                window.xhr = new XMLHttpRequest();
-                xhr.open('GET', document.querySelector('#js-initialInputArea').value.trim());
-                xhr.addEventListener('load', function (e) {
-                    console.log(e.target.responseText);
-                    if (e.target.status != 200 && e.target.status != 304) {
-                        // 404, 503, etc
-                        alert('Error: Remote file not found');
-                    } else {
-                        // Good load
-                        app.vars.givenRawData = e.target.responseText;
-                        realStart();
-                    };
-                });
-                xhr.send();
-                return 0; // End early
-            };
-            // Start
+            // Start here
             var txtUrlRegExp = /^https:.+\.txt$/;
-            if (document.querySelector('#js-initialInputArea').value.trim().match(txtUrlRegExp)) {
-                // Change current URL
-                location.replace('?txturl=' + btoa(document.querySelector('#js-initialInputArea').value.trim().match(txtUrlRegExp)).replace(/=/g, ''))
+            if (document.querySelector('#js-initialInputArea').value.trim().match(txtUrlRegExp)) { // Remote txt file URL is given
+                // Jump now
+                location.replace('?txturl=' + btoa(document.querySelector('#js-initialInputArea').value.trim().match(txtUrlRegExp)).replace(/=/g, ''));
                 return 0;
             } else {
-                app.vars.givenRawData = document.querySelector('#js-initialInputArea').value;
-                realStart();
-                return 0;
+                // Normal start
+                if (location.search.length > 1) { // Current URL indicates a predefined remote txt
+                    location.replace(location.href.slice(0,location.href.indexOf('?')));
+                    // app.vars.givenRawData = document.querySelector('#js-initialInputArea').value;
+                    return 0;
+                } else {
+                    // Normal start
+                    app.vars.givenRawData = document.querySelector('#js-initialInputArea').value;
+                    app.realStart();
+                    return 0;
+                };
             };
         };
         </script>
@@ -441,6 +427,35 @@
                                     padding: 6px 8px;
                                 " placeholder="在此粘贴原始数据，或远程文件 URL" autofocus></textarea>
                                 <script type="text/javascript">
+                                // Overwrite textarea if remote txt file is predefined in URL
+                                if (location.search.match(app.env.preloadRemoteFile_matchCriteria)) {
+                                    localStorage[app.env.lsk+'rawDataInput'] = atob(location.search.match(app.env.preloadRemoteFile_matchCriteria)[1]);
+                                    document.querySelector('#js-initialInputArea').value = localStorage[app.env.lsk+'rawDataInput'];
+                                    // Special start for predefined remote txt file
+                                    (function () {
+                                        var matchResult = location.search.match(app.env.preloadRemoteFile_matchCriteria);
+                                        var url = atob(matchResult[1]);
+                                        console.log(url);
+                                        window.xhr = new XMLHttpRequest();
+                                        xhr.open('GET', document.querySelector('#js-initialInputArea').value.trim());
+                                        xhr.addEventListener('load', function (e) {
+                                            console.log(e.target.responseText);
+                                            if (e.target.status != 200 && e.target.status != 304) {
+                                                // 404, 503, etc
+                                                alert('Error: Remote file not found');
+                                            } else {
+                                                // Good load
+                                                app.vars.givenRawData = e.target.responseText;
+                                                app.realStart();
+                                            };
+                                        });
+                                        xhr.send();
+                                        return 0; // End early
+                                    })();
+                                    app.vars.preventAutoStart = true;
+                                };
+                                </script>
+                                <script type="text/javascript">
                                 if (localStorage[app.env.lsk+'rawDataInput'] !== undefined) {
                                     document.querySelector('#js-initialInputArea').value = localStorage[app.env.lsk+'rawDataInput'];
                                 };
@@ -455,7 +470,9 @@
                                     });
                                     setTimeout(app.start, 300);
                                 });
-                                window.addEventListener('load', function () { setTimeout(app.start, 350); });
+                                if (app.vars.preventAutoStart != true) {
+                                    window.addEventListener('load', function () { setTimeout(app.start, 350); });
+                                };
                                 </script>
                             </div>
                             <div class="form-group mb-5">
