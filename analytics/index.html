@@ -251,7 +251,7 @@
                     var maxDay = Math.max.apply(null, app.vars.daysInWeek_RoundedWeeksOnly.map(function (x) {
                         return app.utils.average(x);
                     }));
-                    return `<p>样本量: ${weeklyActivity_totalValidDays}</p>` + charts.barsHorizontal({
+                    return `<p>样本量共计 ${weeklyActivity_totalValidDays} 周（即 ${weeklyActivity_totalValidDays*7} 天）</p>` + charts.barsHorizontal({
                         'rows': app.vars.daysInWeek_RoundedWeeksOnly.map(function (x, i) {
                             var normalizedNumber = app.utils.rightpad(app.utils.addMissingDecimalDot(app.utils.average(x).toString().slice(0,7)),7,'0');
                             var barLength = app.utils.average(x)/maxDay;
