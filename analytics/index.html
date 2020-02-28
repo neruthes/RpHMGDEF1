@@ -35,7 +35,7 @@
         <script type="text/javascript">
         window.charts = {};
         charts.barsHorizontal = function (dataObj) {
-            var dataObj_sample = [
+            var dataObj_rows_sample = [
                 // ['key 1', 'value 1', width_percentage],
                 ['key 1', 'value 1', 0.25],
                 ['key 2', 'value 2', 0.5]
@@ -68,7 +68,7 @@
             };
             return arr.reduce((x,y) => x+y)/arr.length;
         };
-        app.utils.rightpad = function (str, len, pad) {
+        app.utils.rightpad = function (str, len, pad) {;
             return str + (new Array(len-str.length)).fill(pad).join('');
         };
         app.utils.leftpad = function (str, len, pad) {
@@ -206,12 +206,13 @@
                 [],
                 []
             ];
-            console.log(listOfDates);
+            console.log('listOfDates', listOfDates);
             Object.keys(listOfDates).sort().map(function (dateIdentifier) {
                 var dayId = app.dicts.dayNameToIndex[dateIdentifier.split('|')[1]];
                 daysInWeek[dayId] = daysInWeek[dayId].concat(listOfDates[dateIdentifier]);
             });
             console.log(daysInWeek);
+            app.vars.listOfDates = listOfDates;
             app.vars.daysInWeek = daysInWeek;
             app.vars.totalDatesInCalendar = daysInWeek.map(x => x.length).reduce((a,b) => a+b);
         };
@@ -369,8 +370,86 @@
             {
                 'codeName': 'dailyAverageOverMonths',
                 'name': '日均变化趋势',
-                'render': function (db) {
-                    return '<p>本功能尚未实现</p>';
+                'render': function () {
+                    var howManyDaysInMonth = function (yyyymm) { // String "2020-01"
+                        var yyyy = yyyymm.split('-')[0];
+                        var mm = yyyymm.split('-')[1];
+                        if (parseInt(mm) > 12) {
+                            return NaN;
+                        };
+                        if ('01 03 05 07 08 10 12'.split(' ').indexOf(mm) >= 0) {
+                            return 31;
+                        };
+                        if ('04 06 09 11'.split(' ').indexOf(mm) >= 0) {
+                            return 30;
+                        };
+                        if (parseInt(yyyy)%400 === 0) {
+                            return 28;
+                        };
+                        if (parseInt(yyyy)%4 === 0) {
+                            return 29;
+                        };
+                        return 28;
+                    };
+                    var getNextMonth = function (monthId) {
+                        var year = parseInt(monthId.split('-')[0]);
+                        var month = parseInt(monthId.split('-')[1]);
+                        month += 1;
+                        if (month === 13) {
+                            month = 1;
+                            year += 1;
+                        };
+                        var yyyy = year.toString();
+                        var mm = month.toString();
+                        if (mm.length === 1) {
+                            mm = '0' + mm;
+                        };
+                        return yyyy + '-' + mm;
+                    };
+                    var listOfMonths = [getNextMonth(app.db[0].Time.slice(0, 7))];
+                    var currentMonth = listOfMonths[0];
+                    var upperBoundary = (new Date()).toISOString().slice(0, 7);
+                    for (var i = 0; i < 120; i++) {
+                        currentMonth = getNextMonth(currentMonth);
+                        if (currentMonth === upperBoundary) {
+                            break;
+                        } else {
+                            listOfMonths.push(currentMonth);
+                        };
+                    };
+                    console.log('listOfMonths', listOfMonths);
+                    app.vars.monthTimesDict = {};
+                    listOfMonths.map(function (monthId) {
+                        app.vars.monthTimesDict[monthId] = 0;
+                    });
+                    app.db.map(function (entry) {
+                        if (app.vars.monthTimesDict[entry.Time.slice(0, 7)] !== undefined) {
+                            app.vars.monthTimesDict[entry.Time.slice(0, 7)] = app.vars.monthTimesDict[entry.Time.slice(0, 7)] + 1;
+                        };
+                    });
+                    var maxCount = 0;
+                    Object.keys(app.vars.monthTimesDict).map(function (id) {
+                        maxCount = Math.max(maxCount, app.vars.monthTimesDict[id]/howManyDaysInMonth(id));
+                    });
+                    app.vars.monthlyAverageChangeData = Object.keys(app.vars.monthTimesDict).sort().map(function (id) {
+                        return [
+                            id,
+                            (app.vars.monthTimesDict[id]/howManyDaysInMonth(id)).toString().slice(0,7),
+                            (app.vars.monthTimesDict[id]/howManyDaysInMonth(id))/maxCount
+                        ];
+                    });
+                    console.log('app.vars.monthTimesDict', app.vars.monthTimesDict);
+                    console.log('app.vars.monthlyAverageChangeData', app.vars.monthlyAverageChangeData);
+                    return charts.barsHorizontal({rows:app.vars.monthlyAverageChangeData});
+
+                    // Object.keys(app.vars.listOfDates).sort().map(function (di) {
+                    //     var dd = di.slice(7).split('-');
+                    //     var daysOfTheMonth = howManyDaysInMonth(dd[0], dd[1]);
+                    //     app.vars.listOfDates[di]
+                    // });
+
+
+                    // return '<p>本功能尚未实现</p>';
                 }
             }
         ];

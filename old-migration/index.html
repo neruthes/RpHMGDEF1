@@ -98,7 +98,7 @@
                 filledDates[dateName].map(entry => validDataEntries.push(entry));
             });
             console.log(validDataEntries);
-            document.querySelector('#js-finalOutputArea').value = validDataEntries.join('\n');
+            document.querySelector('#js-finalOutputArea').value = validDataEntries.join('\n') + '\n# LOG UPDATE SLICE: ' + (new Date()).toISOString();
         };
         </script>
     </head>
