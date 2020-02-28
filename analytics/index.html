@@ -275,10 +275,10 @@
                         if (app.parseEntryInfo(x).Blur !== 'accurate') {
                             return 0;
                         };
-                        var currentHourGroup = Math.floor(parseInt(app.parseEntryInfo(x).localHour)/2);
+                        var currentHourGroup = Math.floor(parseInt(app.parseEntryInfo(x).localHour)/2)%12;
                         hourGroups[currentHourGroup] = hourGroups[currentHourGroup] + 1;
                     });
-                    console.log(hourGroups);
+                    console.log('hourGroups', hourGroups);
                     var maxHour = Math.max.apply(null, hourGroups.map(function (x) {
                         return x;
                     }));
